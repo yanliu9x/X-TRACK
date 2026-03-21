@@ -100,6 +100,13 @@ bool GPS_GetInfo(GPS_Info_t* info);
 bool GPS_LocationIsValid();
 double GPS_GetDistanceOffset(GPS_Info_t* info, double preLong, double preLat);
 
+/* GNSS */
+void GNSS_Init();
+void GNSS_Update();
+bool GNSS_GetInfo(GNSS_Info_t* info);
+bool GNSS_LocationIsValid();
+double GNSS_GetDistanceOffset(GNSS_Info_t* info, double preLong, double preLat);
+
 /* Buzzer */
 void Buzz_init();
 void Buzz_SetEnable(bool en);
