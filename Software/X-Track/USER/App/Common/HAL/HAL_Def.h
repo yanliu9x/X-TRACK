@@ -32,6 +32,9 @@ typedef struct
     Clock_Info_t clock;
 } GPS_Info_t;
 
+/* GNSS (Global Navigation Satellite System) */
+typedef GPS_Info_t GNSS_Info_t;
+
 /* MAG */
 typedef struct
 {

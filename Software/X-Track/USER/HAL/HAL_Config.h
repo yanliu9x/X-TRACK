@@ -63,6 +63,14 @@
 #define CONFIG_GPS_TX_PIN           PA3
 #define CONFIG_GPS_RX_PIN           PA2
 
+/* GNSS */
+#define CONFIG_GNSS_SERIAL          Serial3
+#define CONFIG_GNSS_BAUD_RATE       9600
+#define CONFIG_GNSS_USE_TRANSPARENT 0
+#define CONFIG_GNSS_BUF_OVERLOAD_CHK 0
+#define CONFIG_GNSS_TX_PIN          PC10
+#define CONFIG_GNSS_RX_PIN          PC11
+
 /* IMU */
 #define CONFIG_IMU_INT1_PIN         PB10
 #define CONFIG_IMU_INT2_PIN         PB11

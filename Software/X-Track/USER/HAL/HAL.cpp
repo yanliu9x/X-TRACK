@@ -56,6 +56,7 @@ void HAL::HAL_Init()
     Clock_Init();
     Buzz_init();
     GPS_Init();
+    GNSS_Init();
 #if CONFIG_SENSOR_ENABLE
     HAL_Sensor_Init();
 #endif
@@ -72,6 +73,7 @@ void HAL::HAL_Init()
 
     taskManager.Register(Power_EventMonitor, 100);
     taskManager.Register(GPS_Update, 200);
+    taskManager.Register(GNSS_Update, 200);
     taskManager.Register(SD_Update, 500);
     taskManager.Register(Memory_DumpInfo, 1000);
 
