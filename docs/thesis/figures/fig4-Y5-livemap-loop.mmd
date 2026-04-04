@@ -1,0 +1,81 @@
+flowchart TD
+    %% 图4-Y5  LiveMap 数据获取与绘制闭环图（简化版）
+    %% 只描述 100 ms 刷新闭环；页面生命周期见图4-Y3。
+    %% 箭头语义：Pull 按需获取快照；Subscribe 注册推送；Publish 节点主动推送；Notify 命令下发
+
+    %% ── 触发源 ────────────────────────────────────────────
+    TIMER["🕐 lv_timer · 100 ms\nLiveMap::Update()"]
+
+    %% ── 数据获取 ──────────────────────────────────────────
+    subgraph MODEL ["Model — 数据获取层（Account 统一边界）"]
+        direction TB
+        PGPS["Pull(&quot;GPS&quot;)\nGPS 定位快照"]
+        PSCFG["Pull(&quot;SysConfig&quot;)\n回退默认经纬度\n(GPS isValid=false 时)"]
+        PTF["Pull(&quot;TrackFilter&quot;)\n轨迹状态 / 点容器 / level"]
+        SSUB["Subscribe(&quot;SportStatus&quot;)\n注册推送（页面初始化）"]
+        SCACHE["sportStatusInfo 缓存\n← onEvent 接收 Publish 更新"]
+    end
+
+    %% ── 坐标与瓦片转换 ────────────────────────────────────
+    subgraph CONV ["坐标 & 瓦片转换"]
+        direction TB
+        MAPCONV["MapConv\n经纬度 → 地图坐标 X/Y\n+ 瓦片路径生成"]
+        TILECONV["TileConv\n计算瓦片容器 / 索引 / 偏移"]
+    end
+
+    %% ── View / LVGL 绘制 ────────────────────────────────
+    subgraph VIEW ["View / LVGL 绘制层"]
+        direction TB
+        TILES["View.SetMapTileSrc()\n瓦片图片源更新"]
+        ARROW["View.SetImgArrowStatus()\n箭头位置 / 航向角"]
+        POLY["polyline\n轨迹线段追加绘制\n(TrackLineFilter 过滤后输出)"]
+        LABELS["View 信息面板\n速度 / 里程 / 时间"]
+    end
+
+    %% ── 外部节点 ──────────────────────────────────────────
+    SPORTSRC[("SportStatus 节点\n(DataProc)")]
+    STATUSBAR[("StatusBar 节点\n(DataProc)")]
+
+    %% ── 连接：触发 ───────────────────────────────────────
+    TIMER -->|"触发 CheckPosition()\nSportInfoUpdate()"| PGPS
+    TIMER -->|"触发"| SCACHE
+
+    %% ── 连接：GPS 获取与回退 ────────────────────────────
+    PGPS -->|"isValid = true"| MAPCONV
+    PGPS -->|"isValid = false → Pull 回退"| PSCFG
+    PSCFG -->|"默认 lat/lon"| MAPCONV
+
+    %% ── 连接：MapConv → TileConv ───────────────────────
+    MAPCONV --> TILECONV
+
+    %% ── 连接：TileConv → 绘制 ──────────────────────────
+    TILECONV -->|"ConvertMapPath 瓦片路径"| TILES
+    TILECONV -->|"GetFocusOffset 焦点偏移"| ARROW
+
+    %% ── 连接：TrackFilter → 轨迹绘制 ──────────────────
+    TILECONV -.->|"容器位置变化\n触发 TrackReload"| PTF
+    PTF -->|"Pull TrackFilter\n容器指针 / isActive"| POLY
+
+    %% ── 连接：SportStatus 推送 ─────────────────────────
+    SPORTSRC -->|"Publish SportStatus"| SSUB
+    SSUB --> SCACHE
+    SCACHE -->|"读取缓存"| LABELS
+
+    %% ── StatusBar Notify（页面进入时，非刷新闭环） ─────
+    INIT["onViewWillAppear\nModel.SetStatusBarStyle()"]
+    INIT -->|"Notify(&quot;StatusBar&quot;)\n黑色主题"| STATUSBAR
+
+    %% ── 样式 ─────────────────────────────────────────────
+    classDef trigger  fill:#d0e8ff,stroke:#4a90d9,color:#000
+    classDef model    fill:#fff9c4,stroke:#f0c040,color:#000
+    classDef conv     fill:#d4edda,stroke:#28a745,color:#000
+    classDef view     fill:#fce4d6,stroke:#e07040,color:#000
+    classDef extnode  fill:#e8d5f5,stroke:#9b59b6,color:#000
+    classDef init     fill:#f0f0f0,stroke:#999,color:#000,stroke-dasharray:4 4
+
+    class TIMER trigger
+    class PGPS,PSCFG,PTF,SSUB,SCACHE model
+    class MAPCONV,TILECONV conv
+    class TILES,ARROW,POLY,LABELS view
+    class SPORTSRC,STATUSBAR extnode
+    class INIT init
